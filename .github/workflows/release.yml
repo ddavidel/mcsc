@@ -134,9 +134,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add pyproject.toml src/mcsc/__init__.py
-          git commit -m "chore(release): v${VERSION}"
+          if git diff --cached --quiet; then
+            # Releasing the version already in the source files (e.g. the first release):
+            # nothing to bump, just tag the current commit.
+            echo "Version is already ${VERSION}, skipping the version bump commit"
+          else
+            git commit -m "chore(release): v${VERSION}"
+            git push origin main
+          fi
           git tag -a "v${VERSION}" -m "Release v${VERSION}"
-          git push origin main
           git push origin "v${VERSION}"
 
       - name: Build distributions
