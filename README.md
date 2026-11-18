@@ -1,9 +1,7 @@
 # mcsc
 
 Python library to create, run and manage Minecraft servers (Vanilla, Paper, Forge 1.17+).
-It is the server-management core of [Minecraft Server Creator](https://github.com/ddavidel/minecraft-server-creator),
-with no GUI dependency: no NiceGUI, no translations, no telemetry. Hook those up in the app
-through listeners and exceptions.
+It is the server-management core of [Minecraft Server Creator](https://github.com/ddavidel/minecraft-server-creator)
 
 Requires Python 3.12+ and Java on the machine that runs the servers.
 
@@ -12,8 +10,6 @@ Requires Python 3.12+ and Java on the machine that runs the servers.
 ```bash
 pip install pymcsc
 ```
-
-The package is published on PyPI as `pymcsc`, but it is imported as `mcsc`.
 
 For development:
 
