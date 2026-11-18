@@ -10,6 +10,14 @@ Requires Python 3.12+ and Java on the machine that runs the servers.
 ## Install
 
 ```bash
+pip install pymcsc
+```
+
+The package is published on PyPI as `pymcsc`, but it is imported as `mcsc`.
+
+For development:
+
+```bash
 pip install -e ".[dev]"
 ```
 

@@ -1,0 +1,180 @@
+name: Release
+
+# Manually triggered release from main:
+#   1. runs the test suite (release is aborted if any test fails)
+#   2. bumps the version, commits it and creates a git tag
+#   3. builds the package and creates a GitHub release with the artifacts
+#   4. publishes the package to PyPI (Trusted Publishing, no API token needed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type (ignored if 'version' is set)"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      version:
+        description: "Explicit version to release (e.g. 1.2.3). Leave empty to use the bump type."
+        required: false
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package with dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: python -m pytest -v
+
+  release:
+    name: Create release
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compute new version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+          EXPLICIT_VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'EOF'
+          import os, re, sys, tomllib
+
+          with open("pyproject.toml", "rb") as f:
+              current = tomllib.load(f)["project"]["version"]
+
+          explicit = os.environ.get("EXPLICIT_VERSION", "").strip().lstrip("v")
+          if explicit:
+              if not re.fullmatch(r"\d+\.\d+\.\d+", explicit):
+                  sys.exit(f"Invalid version '{explicit}', expected MAJOR.MINOR.PATCH")
+              new = explicit
+          else:
+              major, minor, patch = (int(x) for x in current.split("."))
+              bump = os.environ["BUMP"]
+              if bump == "major":
+                  major, minor, patch = major + 1, 0, 0
+              elif bump == "minor":
+                  minor, patch = minor + 1, 0
+              else:
+                  patch += 1
+              new = f"{major}.{minor}.{patch}"
+
+          print(f"Current version: {current}")
+          print(f"New version:     {new}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"version={new}\n")
+          EOF
+
+      - name: Ensure tag does not already exist
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::Tag v${VERSION} already exists"
+            exit 1
+          fi
+
+      - name: Update version in source files
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -i -E "s/^version = \"[^\"]+\"/version = \"${VERSION}\"/" pyproject.toml
+          sed -i -E "s/^__version__ = \"[^\"]+\"/__version__ = \"${VERSION}\"/" src/mcsc/__init__.py
+          git diff
+
+      - name: Commit, tag and push
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml src/mcsc/__init__.py
+          git commit -m "chore(release): v${VERSION}"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin main
+          git push origin "v${VERSION}"
+
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v${VERSION}" dist/* \
+            --title "v${VERSION}" \
+            --generate-notes \
+            --verify-tag
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pymcsc/${{ needs.release.outputs.version }}
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
