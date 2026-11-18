@@ -11,6 +11,7 @@ from mcsc.config import ServerType
 from mcsc.download import download_file
 from mcsc.exceptions import InstallError, UnsupportedVersionError
 from mcsc.servers.base import MinecraftServer
+from mcsc.system import NO_WINDOW_FLAGS
 from mcsc.versions import version_key
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ class ForgeServer(MinecraftServer):
                 text=True,
                 errors="replace",
                 check=False,
+                creationflags=NO_WINDOW_FLAGS,
             )
         except FileNotFoundError as e:
             raise InstallError(f"Java executable not found: {self.config.java_path!r}") from e

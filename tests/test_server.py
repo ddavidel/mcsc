@@ -1,4 +1,6 @@
 import asyncio
+import subprocess
+import sys
 
 import pytest
 
@@ -130,3 +132,26 @@ def test_forge_unsupported_layout(tmp_path):
     server.server_dir.mkdir(parents=True)
     with pytest.raises(UnsupportedVersionError):
         server.build_command()
+
+
+async def test_java_runs_without_console_window(fake_server, monkeypatch):
+    from mcsc.servers import base
+    from mcsc.system import NO_WINDOW_FLAGS
+
+    seen = {}
+    original = base.asyncio.create_subprocess_exec
+
+    async def spy(*args, **kwargs):
+        seen.update(kwargs)
+        return await original(*args, **kwargs)
+
+    monkeypatch.setattr(base.asyncio, "create_subprocess_exec", spy)
+    await fake_server.start()
+    await wait_for_state(fake_server, ServerState.RUNNING)
+    await fake_server.stop(timeout=10)
+
+    assert seen["creationflags"] == NO_WINDOW_FLAGS
+    if sys.platform == "win32":
+        assert NO_WINDOW_FLAGS == subprocess.CREATE_NO_WINDOW
+    else:
+        assert NO_WINDOW_FLAGS == 0

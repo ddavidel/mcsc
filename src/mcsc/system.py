@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+
 import psutil
+
+NO_WINDOW_FLAGS: int = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+"""``creationflags`` for java processes: on Windows they never open a console
+window of their own (e.g. when the host app runs under ``pythonw``)."""
 
 
 def total_ram_gb() -> int:

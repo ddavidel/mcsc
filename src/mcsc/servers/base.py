@@ -21,6 +21,7 @@ from mcsc.exceptions import (
 )
 from mcsc.files import read_config_file, write_config_file
 from mcsc.monitor import ProcessMonitor
+from mcsc.system import NO_WINDOW_FLAGS
 
 logger = logging.getLogger(__name__)
 
@@ -223,6 +224,7 @@ class MinecraftServer:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 limit=_STREAM_LIMIT,
+                creationflags=NO_WINDOW_FLAGS,
             )
         except FileNotFoundError as e:
             self._finish(None)
