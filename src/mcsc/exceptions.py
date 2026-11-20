@@ -47,3 +47,31 @@ class DownloadError(MCSCError):
 
 class InstallError(MCSCError):
     """Server installation failed."""
+
+
+class ServerBusyError(ServerStateError):
+    """Another operation (backup, restore, export, delete) is running on the server."""
+
+
+class BackupError(MCSCError):
+    """A backup, restore, export or import failed."""
+
+
+class InsufficientDiskSpaceError(BackupError, OSError):
+    """There is not enough free disk space for the operation."""
+
+
+class InvalidArchiveError(BackupError):
+    """The archive is not a valid mcsc backup/export (corrupted, no manifest, unsafe entries)."""
+
+
+class UnsupportedArchiveVersionError(InvalidArchiveError):
+    """The archive was created by a newer version of mcsc."""
+
+
+class IncompatibleBackupError(BackupError):
+    """The backup belongs to a different server type than the server it is restored into."""
+
+
+class InvalidServerFolderError(MCSCError):
+    """The folder doesn't look like a Minecraft server that can be imported."""
