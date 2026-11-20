@@ -16,6 +16,7 @@ from mcsc.download import download_file
 from mcsc.exceptions import (
     EulaNotAcceptedError,
     JavaNotFoundError,
+    ServerBusyError,
     ServerNotRunningError,
     ServerRunningError,
 )
@@ -66,6 +67,7 @@ class MinecraftServer:
         self._tasks: list[asyncio.Task] = []
         self._exited: asyncio.Event | None = None
         self._returncode: int | None = None
+        self._operation: str | None = None
         self._output_listeners: list[OutputListener] = []
         self._state_listeners: list[StateListener] = []
 
@@ -119,6 +121,23 @@ class MinecraftServer:
     def is_active(self) -> bool:
         """True while a server process exists (any state but ``STOPPED``)."""
         return self._state is not ServerState.STOPPED
+
+    @property
+    def operation(self) -> str | None:
+        """Name of the operation holding the server (``"backup"``, ``"restore"``, ...), or ``None``.
+
+        While it is set, :meth:`start` raises
+        :class:`~mcsc.exceptions.ServerBusyError`. Set by :class:`mcsc.ServerManager`.
+        """
+        return self._operation
+
+    @property
+    def is_busy(self) -> bool:
+        return self._operation is not None
+
+    def _check_not_busy(self) -> None:
+        if self._operation is not None:
+            raise ServerBusyError(f"Server {self.name!r} is busy ({self._operation} in progress)")
 
     @property
     def pid(self) -> int | None:
@@ -205,6 +224,7 @@ class MinecraftServer:
 
     async def start(self) -> None:
         """Spawn the server process and return immediately."""
+        self._check_not_busy()
         if self.is_active:
             raise ServerRunningError(f"Server {self.name!r} is already {self.state}")
         if not self.eula_accepted:
