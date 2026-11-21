@@ -36,6 +36,9 @@ class ProcessMonitor:
         self.active = False
         self._procs: dict[int, psutil.Process] = {}
         self._prev_io: tuple[int, int] | None = None
+        # Bumped by every run() and stop(); a run() only acts while its own
+        # generation is still the current one.
+        self._generation = 0
 
     def __repr__(self) -> str:
         return f"ProcessMonitor(active={self.active}, usage={self.usage})"
@@ -79,18 +82,22 @@ class ProcessMonitor:
         )
 
     async def run(self, pid: int) -> None:
-        """Sample process ``pid`` every :attr:`interval` seconds until it exits or :meth:`stop` is called."""
-        if self.active:
-            return
+        """Sample process ``pid`` every :attr:`interval` seconds until it exits or :meth:`stop` is called.
+
+        A new call always takes over: any previous :meth:`run` still pending
+        becomes stale and exits at its next wake-up without touching the
+        state of the newer run.
+        """
+        self._generation += 1
+        generation = self._generation
+        self._reset()
         try:
             root = psutil.Process(pid)
         except psutil.NoSuchProcess:
             return
         self.active = True
-        self._procs.clear()
-        self._prev_io = None
         try:
-            while self.active and root.is_running():
+            while self._generation == generation and root.is_running():
                 self.usage = self._sample(root)
                 await asyncio.sleep(self.interval)
         except psutil.NoSuchProcess:
@@ -98,10 +105,17 @@ class ProcessMonitor:
         except Exception:  # noqa: BLE001 - monitoring must never crash the server task
             logger.exception("Error monitoring process %s", pid)
         finally:
-            self.stop()
+            # Only the current run may clean up: a stale one must not stop a newer run.
+            if self._generation == generation:
+                self.stop()
 
     def stop(self) -> None:
         """Stop sampling and reset :attr:`usage`."""
+        self._generation += 1  # any pending run() is now stale
+        self._reset()
+
+    def _reset(self) -> None:
         self.active = False
         self.usage = ResourceUsage()
         self._procs.clear()
+        self._prev_io = None
