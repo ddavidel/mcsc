@@ -13,6 +13,7 @@ import pytest
 from mcsc import (
     BackupKind,
     BackupManifest,
+    FabricServer,
     ForgeServer,
     IncompatibleBackupError,
     InsufficientDiskSpaceError,
@@ -573,6 +574,24 @@ def test_detect_paper_folder(tmp_path):
     )
     detected = detect_server_folder(tmp_path)
     assert (detected.server_type, detected.version) == (ServerType.PAPER, "1.21.4")
+
+
+def test_detect_and_import_fabric_folder(manager, tmp_path):
+    folder = tmp_path / "fabric"
+    folder.mkdir()
+    launcher = folder / "fabric-server-mc.1.21.4-loader.0.16.10-launcher.jar"
+    with zipfile.ZipFile(launcher, "w") as jar:
+        jar.writestr("install.properties", "fabric-loader-version=0.16.10\ngame-version=1.21.4\n")
+    (folder / ".fabric").mkdir()
+    (folder / "mods").mkdir()
+
+    detected = detect_server_folder(folder)
+    assert (detected.server_type, detected.version) == (ServerType.FABRIC, "1.21.4")
+
+    imported = manager.import_folder(folder, detected.server_type, detected.version, name="Fab")
+    assert isinstance(imported, FabricServer)
+    assert imported.jar_path.is_file()
+    assert imported.mods_dir.is_dir()
 
 
 def test_import_forge_folder(manager, tmp_path):

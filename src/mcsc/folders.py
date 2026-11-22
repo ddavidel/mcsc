@@ -20,6 +20,8 @@ FORGE_LIBRARIES = Path("libraries", "net", "minecraftforge", "forge")
 _LOG_VERSION_RE = re.compile(r"Starting minecraft server version (\S+)")
 _PAPER_HISTORY_RE = re.compile(r"\(MC: ([^)]+)\)")
 _PAPER_MARKERS = ("version_history.json", "paper.yml", "config/paper-global.yml")
+_FABRIC_MARKERS = (".fabric", "fabric-server-launcher.properties")
+_INSTALL_GAME_VERSION_RE = re.compile(r"^\s*game-version\s*=\s*(\S+)\s*$", re.M)
 
 
 @dataclass(frozen=True)
@@ -29,7 +31,7 @@ class DetectedServer:
     server_type: ServerType | None
     version: str | None
     jar: Path | None
-    """Server jar (Vanilla/Paper), relative to the folder."""
+    """Server jar (Vanilla/Paper/Fabric), relative to the folder."""
 
 
 def find_server_jar(folder: Path) -> Path | None:
@@ -60,6 +62,17 @@ def _jar_version(jar: Path) -> str | None:
     return str(version) if version else None
 
 
+def _fabric_version(jar: Path) -> str | None:
+    """Minecraft version from the ``install.properties`` of a Fabric server launcher."""
+    try:
+        with zipfile.ZipFile(jar) as archive:
+            text = archive.read("install.properties").decode("utf-8", errors="replace")
+    except (OSError, KeyError, zipfile.BadZipFile):
+        return None
+    match = _INSTALL_GAME_VERSION_RE.search(text)
+    return match.group(1) if match else None
+
+
 def _paper_version(folder: Path) -> str | None:
     try:
         data = json.loads((folder / "version_history.json").read_text(encoding="utf-8"))
@@ -85,6 +98,7 @@ def detect_server_folder(folder: str | os.PathLike[str]) -> DetectedServer:
     """Guess type, version and jar of an existing server folder.
 
     * Forge: a ``libraries/net/minecraftforge/forge/<version>`` folder (Forge 1.17+ layout);
+    * Fabric: a ``.fabric`` folder or ``fabric-server-launcher.properties``;
     * Paper: ``version_history.json``, ``paper.yml`` or ``config/paper-global.yml``;
     * Vanilla: any other folder with a server jar.
     """
@@ -94,6 +108,9 @@ def detect_server_folder(folder: str | os.PathLike[str]) -> DetectedServer:
         return DetectedServer(ServerType.FORGE, forge, None)
 
     jar = find_server_jar(folder)
+    if any((folder / marker).exists() for marker in _FABRIC_MARKERS):
+        version = (_fabric_version(folder / jar) if jar else None) or _log_version(folder)
+        return DetectedServer(ServerType.FABRIC, version, jar)
     is_paper = any((folder / marker).is_file() for marker in _PAPER_MARKERS)
     if is_paper:
         version = _paper_version(folder) or _log_version(folder)

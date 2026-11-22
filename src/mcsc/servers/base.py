@@ -32,7 +32,7 @@ OutputListener = Callable[["MinecraftServer", str], Any]
 StateListener = Callable[["MinecraftServer", ServerState, ServerState], Any]
 """``(server, old_state, new_state)``; may be sync or async."""
 
-# Printed by Vanilla, Paper and Forge once the world is loaded.
+# Printed by Vanilla, Paper, Forge and Fabric once the world is loaded.
 READY_PATTERN = re.compile(r"Done \([\d.,]+s\)!")
 
 _STREAM_LIMIT = 1024 * 1024  # max console line length

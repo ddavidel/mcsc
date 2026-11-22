@@ -645,7 +645,7 @@ class ServerManager:
     ) -> MinecraftServer:
         """Copy (never move) an existing server folder into a new registered server. Blocking.
 
-        Vanilla/Paper folders need a server jar: ``jar`` (relative to the
+        Vanilla/Paper/Fabric folders need a server jar: ``jar`` (relative to the
         folder), else ``server.jar`` or the only ``.jar`` in the folder; it is
         renamed to ``server.jar`` in the copy. Forge folders need the 1.17+
         layout (``libraries/net/minecraftforge/forge``). Use

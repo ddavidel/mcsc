@@ -18,6 +18,7 @@ DEFAULT_SOURCES: dict[ServerType, str] = {
     ServerType.VANILLA: "https://raw.githubusercontent.com/ddavidel/minecraft-server-jars/refs/heads/main/versions/vanilla_version_list.json",
     ServerType.PAPER: "https://raw.githubusercontent.com/ddavidel/minecraft-server-jars/refs/heads/main/versions/paper_version_list.json",
     ServerType.FORGE: "https://raw.githubusercontent.com/ddavidel/minecraft-forge-links/refs/heads/main/version_list.json",
+    ServerType.FABRIC: "https://raw.githubusercontent.com/ddavidel/minecraft-server-jars/refs/heads/main/versions/fabric_version_list.json",
 }
 
 # Forge installs older than this use a layout mcsc cannot run.

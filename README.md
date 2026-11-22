@@ -1,6 +1,6 @@
 # mcsc
 
-Python library to create, run and manage Minecraft servers (Vanilla, Paper, Forge 1.17+).
+Python library to create, run and manage Minecraft servers (Vanilla, Paper, Forge 1.17+, Fabric).
 It is the server-management core of [Minecraft Server Creator](https://github.com/ddavidel/minecraft-server-creator)
 
 Requires Python 3.12+ and Java on the machine that runs the servers.
@@ -47,7 +47,7 @@ asyncio.run(main())
 | Module | What it does |
 |---|---|
 | `ServerManager` | Registry of servers: `load`, `save`, `create` / `create_async`, `register`, `get`, `find`, `delete`, `stop_all`; backups, restore, export and import (see below) |
-| `MinecraftServer` (`VanillaServer`, `PaperServer`, `ForgeServer`) | One server: `install`, `start`, `stop`, `kill`, `restart`, `wait`, `send_command`, `state`, `output`, `monitor`, config files |
+| `MinecraftServer` (`VanillaServer`, `PaperServer`, `ForgeServer`, `FabricServer`) | One server: `install`, `start`, `stop`, `kill`, `restart`, `wait`, `send_command`, `state`, `output`, `monitor`, config files |
 | `ServerConfig` | Persistent settings (dataclass); `to_dict` / `from_dict` (also reads the legacy `servers.json`) |
 | `ServerType`, `ServerState` | Enums. `ServerType` values match the legacy `jar_type` |
 | `VersionCatalog` | Available versions and download URLs per server type |
@@ -66,6 +66,9 @@ server prints its `Done (...)!` line. `start()` refuses to run until the EULA is
 
 Forge servers are launched with Java directly using the installer's argument files
 (the same thing `run.bat`/`run.sh` do), so they work on every OS and `ram_gb` is always applied.
+
+Fabric servers use the Fabric server launcher jar: it runs like a Vanilla jar and downloads the
+Minecraft server and the Fabric Loader libraries on first start. Mods go in `server.mods_dir`.
 
 ### Config files
 
