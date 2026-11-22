@@ -36,6 +36,7 @@ def catalog() -> VersionCatalog:
                 "1.21.5-rc1": "https://example.invalid/rc.jar",
             },
             ServerType.PAPER: {"1.21.4": "https://example.invalid/paper.jar"},
+            ServerType.FABRIC: {"1.21.4": "https://example.invalid/fabric.jar"},
             ServerType.FORGE: {
                 "1.16.5-36.2.39": "https://example.invalid/forge-old.jar",
                 "1.20.6-50.1.39": "https://example.invalid/forge-new.jar",

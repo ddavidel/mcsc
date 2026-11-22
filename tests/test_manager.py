@@ -3,6 +3,7 @@ import json
 import pytest
 
 from mcsc import (
+    FabricServer,
     PaperServer,
     ServerManager,
     ServerNotFoundError,
@@ -31,6 +32,19 @@ def test_create_installs_and_persists(manager, no_download):
     reloaded.load()
     loaded = reloaded.get(server.id)
     assert loaded.config == server.config
+
+
+def test_create_fabric(manager, no_download):
+    server = manager.create("Modded", "1.21.4", ServerType.FABRIC, accept_eula=True)
+    assert isinstance(server, FabricServer)
+    assert no_download == ["https://example.invalid/fabric.jar"]
+    assert server.jar_path.read_bytes() == b"jar"
+    assert server.build_command()[-3:] == ["-jar", str(server.jar_path), "nogui"]
+    assert server.mods_dir == server.server_dir / "mods"
+
+    reloaded = ServerManager(manager.servers_dir, catalog=manager.catalog)
+    reloaded.load()
+    assert isinstance(reloaded.get(server.id), FabricServer)
 
 
 def test_create_without_eula(manager, no_download):

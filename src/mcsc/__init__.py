@@ -55,6 +55,7 @@ from mcsc.folders import DetectedServer, detect_server_folder
 from mcsc.manager import ArchiveInfo, ServerManager
 from mcsc.monitor import ProcessMonitor, ResourceUsage
 from mcsc.servers import (
+    FabricServer,
     ForgeServer,
     MinecraftServer,
     PaperServer,
@@ -79,6 +80,7 @@ __all__ = [
     "DetectedServer",
     "DownloadError",
     "EulaNotAcceptedError",
+    "FabricServer",
     "ForgeServer",
     "IncompatibleBackupError",
     "InstallError",

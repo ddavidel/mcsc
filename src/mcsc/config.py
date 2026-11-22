@@ -18,6 +18,7 @@ class ServerType(IntEnum):
     VANILLA = 0
     PAPER = 1
     FORGE = 2
+    FABRIC = 3
 
     @property
     def label(self) -> str:
